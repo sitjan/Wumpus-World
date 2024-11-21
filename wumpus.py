@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import random
+import time
 
 # Constants
 GRID_SIZE = 4
@@ -20,11 +21,18 @@ class WumpusWorld:
     def __init__(self, root):
         self.root = root
         self.root.title("Wumpus World")
+        self.start_time = time.time()
+        self.timer_label = tk.Label(
+            self.root, text="Time: 0s", font=("Arial", 16))
+        self.timer_label.pack()
         self.grid = self.create_grid()
         self.player_pos = (0, 0)
+        self.revealed_tiles = [
+            [False for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
         self.arrows = ARROW_COUNT
         self.create_gui()
         self.update_gui()
+        self.update_timer()
 
     def create_grid(self):
         grid = [[None for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
@@ -68,8 +76,9 @@ class WumpusWorld:
     def create_gui(self):
         self.canvas = tk.Canvas(
             self.root, width=GRID_SIZE*TILE_SIZE, height=GRID_SIZE*TILE_SIZE)
-        self.canvas.pack()
+        self.canvas.pack(fill=tk.BOTH, expand=True)
         self.canvas.bind("<Button-1>", self.on_click)
+        self.root.bind("<Configure>", self.on_resize)
 
     def update_gui(self):
         self.canvas.delete("all")
@@ -77,50 +86,60 @@ class WumpusWorld:
             for j in range(GRID_SIZE):
                 x0, y0 = i*TILE_SIZE, j*TILE_SIZE
                 x1, y1 = x0 + TILE_SIZE, y0 + TILE_SIZE
-                self.canvas.create_rectangle(x0, y0, x1, y1, fill="white")
-                if (i, j) == self.player_pos:
+                self.canvas.create_rectangle(
+                    x0, y0, x1, y1, fill="lightgrey", outline="black")
+                if self.revealed_tiles[i][j]:
+                    if (i, j) == self.player_pos:
+                        self.canvas.create_text(
+                            (x0+x1)//2, (y0+y1)//2, text="P", font=("Arial", 24))
+                    elif self.grid[i][j] == WUMPUS:
+                        self.canvas.create_text(
+                            (x0+x1)//2, (y0+y1)//2, text="W", font=("Arial", 24))
+                    elif self.grid[i][j] == PIT:
+                        self.canvas.create_text(
+                            (x0+x1)//2, (y0+y1)//2, text="O", font=("Arial", 24))
+                    elif self.grid[i][j] == GOLD:
+                        self.canvas.create_text(
+                            (x0+x1)//2, (y0+y1)//2, text="G", font=("Arial", 24))
+                    elif self.grid[i][j] == STENCH:
+                        self.canvas.create_text(
+                            (x0+x1)//2, (y0+y1)//2, text="S", font=("Arial", 24))
+                    elif self.grid[i][j] == BREEZE:
+                        self.canvas.create_text(
+                            (x0+x1)//2, (y0+y1)//2, text="B", font=("Arial", 24))
+                    elif self.grid[i][j] == STENCH + BREEZE:
+                        self.canvas.create_text(
+                            (x0+x1)//2, (y0+y1)//2, text="SB", font=("Arial", 24))
+                else:
                     self.canvas.create_text(
-                        (x0+x1)//2, (y0+y1)//2, text="P", font=("Arial", 24))
-                elif self.grid[i][j] == WUMPUS:
-                    self.canvas.create_text(
-                        (x0+x1)//2, (y0+y1)//2, text="W", font=("Arial", 24))
-                elif self.grid[i][j] == PIT:
-                    self.canvas.create_text(
-                        (x0+x1)//2, (y0+y1)//2, text="O", font=("Arial", 24))
-                elif self.grid[i][j] == GOLD:
-                    self.canvas.create_text(
-                        (x0+x1)//2, (y0+y1)//2, text="G", font=("Arial", 24))
-                elif self.grid[i][j] == STENCH:
-                    self.canvas.create_text(
-                        (x0+x1)//2, (y0+y1)//2, text="S", font=("Arial", 24))
-                elif self.grid[i][j] == BREEZE:
-                    self.canvas.create_text(
-                        (x0+x1)//2, (y0+y1)//2, text="B", font=("Arial", 24))
-                elif self.grid[i][j] == STENCH + BREEZE:
-                    self.canvas.create_text(
-                        (x0+x1)//2, (y0+y1)//2, text="SB", font=("Arial", 24))
+                        (x0+x1)//2, (y0+y1)//2, text="?", font=("Arial", 24))
 
     def on_click(self, event):
         x, y = event.x // TILE_SIZE, event.y // TILE_SIZE
-        if self.is_adjacent(self.player_pos, (x, y)):
-            self.move_player((x, y))
+        if not self.revealed_tiles[x][y]:
+            self.revealed_tiles[x][y] = True
+            if self.grid[x][y] == PIT:
+                messagebox.showinfo("Game Over", "You fell into a pit!")
+                self.root.quit()
+            elif self.grid[x][y] == WUMPUS:
+                messagebox.showinfo(
+                    "Game Over", "You were eaten by the Wumpus!")
+                self.root.quit()
+            elif self.grid[x][y] == GOLD:
+                messagebox.showinfo(
+                    "Victory", "You found the gold and won the game!")
+                self.root.quit()
             self.update_gui()
 
-    def is_adjacent(self, pos1, pos2):
-        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1]) == 1
+    def update_timer(self):
+        elapsed_time = int(time.time() - self.start_time)
+        self.timer_label.config(text=f"Time: {elapsed_time}s")
+        self.root.after(1000, self.update_timer)
 
-    def move_player(self, new_pos):
-        if self.grid[new_pos[0]][new_pos[1]] == PIT:
-            messagebox.showinfo("Game Over", "You fell into a pit!")
-            self.root.quit()
-        elif self.grid[new_pos[0]][new_pos[1]] == WUMPUS:
-            messagebox.showinfo("Game Over", "You were eaten by the Wumpus!")
-            self.root.quit()
-        elif self.grid[new_pos[0]][new_pos[1]] == GOLD:
-            messagebox.showinfo(
-                "Victory", "You found the gold and won the game!")
-            self.root.quit()
-        self.player_pos = new_pos
+    def on_resize(self, event):
+        global TILE_SIZE
+        TILE_SIZE = min(event.width // GRID_SIZE, event.height // GRID_SIZE)
+        self.update_gui()
 
 
 if __name__ == "__main__":
