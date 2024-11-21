@@ -29,6 +29,8 @@ class WumpusWorld:
         self.player_pos = (0, 0)
         self.revealed_tiles = [
             [False for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+        # Player's starting position is revealed
+        self.revealed_tiles[0][0] = True
         self.arrows = ARROW_COUNT
         self.create_gui()
         self.update_gui()
@@ -116,20 +118,31 @@ class WumpusWorld:
 
     def on_click(self, event):
         x, y = event.x // TILE_SIZE, event.y // TILE_SIZE
-        if not self.revealed_tiles[x][y]:
-            self.revealed_tiles[x][y] = True
-            if self.grid[x][y] == PIT:
-                messagebox.showinfo("Game Over", "You fell into a pit!")
-                self.root.quit()
-            elif self.grid[x][y] == WUMPUS:
-                messagebox.showinfo(
-                    "Game Over", "You were eaten by the Wumpus!")
-                self.root.quit()
-            elif self.grid[x][y] == GOLD:
-                messagebox.showinfo(
-                    "Victory", "You found the gold and won the game!")
-                self.root.quit()
-            self.update_gui()
+        if self.is_adjacent(self.player_pos, (x, y)):
+            self.move_player((x, y))
+        elif not self.revealed_tiles[x][y]:
+            self.reveal_tile(x, y)
+        self.update_gui()
+
+    def is_adjacent(self, pos1, pos2):
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1]) == 1
+
+    def move_player(self, new_pos):
+        self.player_pos = new_pos
+        self.revealed_tiles[new_pos[0]][new_pos[1]] = True
+        if self.grid[new_pos[0]][new_pos[1]] == PIT:
+            messagebox.showinfo("Game Over", "You fell into a pit!")
+            self.root.quit()
+        elif self.grid[new_pos[0]][new_pos[1]] == WUMPUS:
+            messagebox.showinfo("Game Over", "You were eaten by the Wumpus!")
+            self.root.quit()
+        elif self.grid[new_pos[0]][new_pos[1]] == GOLD:
+            messagebox.showinfo(
+                "Victory", "You found the gold and won the game!")
+            self.root.quit()
+
+    def reveal_tile(self, x, y):
+        self.revealed_tiles[x][y] = True
 
     def update_timer(self):
         elapsed_time = int(time.time() - self.start_time)
