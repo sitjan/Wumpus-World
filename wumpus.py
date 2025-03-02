@@ -141,7 +141,7 @@ class WumpusWorld:
             self.root.quit()
         elif self.grid[new_pos[0]][new_pos[1]] == GOLD:
             messagebox.showinfo(
-                "Victory", "You found the gold and won the game!")
+                "Victory", "You found the gold and won the game! Hurray")
             self.root.quit()
 
     def reveal_tile(self, x, y):
