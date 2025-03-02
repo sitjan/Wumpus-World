@@ -36,6 +36,9 @@ class WumpusWorld:
         self.update_gui()
         self.update_timer()
 
+        # Set a minimum window size
+        self.root.minsize(GRID_SIZE * TILE_SIZE, GRID_SIZE * TILE_SIZE + 50)
+
     def create_grid(self):
         grid = [[None for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
         # Place Wumpus
@@ -151,7 +154,11 @@ class WumpusWorld:
 
     def on_resize(self, event):
         global TILE_SIZE
-        TILE_SIZE = min(event.width // GRID_SIZE, event.height // GRID_SIZE)
+        # Ensure the window does not collapse
+        new_tile_size = min(event.width // GRID_SIZE, event.height // GRID_SIZE)
+        if new_tile_size < 50:  # Set a minimum tile size
+            new_tile_size = 50
+        TILE_SIZE = new_tile_size
         self.update_gui()
 
 
